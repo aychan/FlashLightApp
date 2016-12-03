@@ -7,7 +7,9 @@ Goal of project: Help other aspiring Android Developers to learn how to connect 
 
 import android.Manifest;
 import android.annotation.TargetApi;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.hardware.Camera;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraManager;
 import android.os.Build;
@@ -15,7 +17,9 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -27,6 +31,8 @@ public class MainActivity extends AppCompatActivity {
     String torchID;
 
     CameraManager cameraManager;
+    Camera camera; //http://stackoverflow.com/questions/28065930/android-camera-android-hardware-camera-deprecated
+    Camera.Parameters params;
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -50,8 +56,19 @@ public class MainActivity extends AppCompatActivity {
         hasFlash = getApplicationContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH);
         if (!hasFlash){
             //The device cannot use this application.
-            System.exit(0);
+            AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+            alertDialog.setTitle("There's a problem");
+            alertDialog.setMessage("Unfortunately, this device does not support this flashlight!");
+            alertDialog.setButton(DialogInterface.BUTTON_POSITIVE,"OK",new DialogInterface.OnClickListener(){
+
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    finish();
+                }
+            });
+            alertDialog.show();
         }
+        getCamera();
         /*
             Below, we will declare a @Button widget, and a @Camera Instance Object.
 
@@ -120,6 +137,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
         switch (requestCode) {
@@ -132,4 +151,49 @@ public class MainActivity extends AppCompatActivity {
                 }
         }
     }
+//////////////////////////////////////////////
+    /*
+        for lower API's than 21
+     */
+    public void getCamera(){
+        if (camera == null) {
+            try {
+                camera = Camera.open();
+                params = camera.getParameters();
+            } catch (RuntimeException e) {
+                Log.e("Failed to Open", e.getMessage());
+            }
+        }
+    }
+    /*
+	 * Turning On flash
+	 */
+    private void ToggleFlashLights(boolean FlashLightIsOn) {
+        if (!FlashLightIsOn) {
+            if (camera == null || params == null) {
+                return;
+            }
+
+            params = camera.getParameters();
+            params.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+            camera.setParameters(params);
+            camera.startPreview();
+            flashOn = true;
+
+        }else{
+            if (camera == null || params == null) {
+                return;
+            }
+
+            params = camera.getParameters();
+            params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+            camera.setParameters(params);
+            camera.stopPreview();
+            flashOn = false;
+
+
+        }
+
+    }
+
 }
